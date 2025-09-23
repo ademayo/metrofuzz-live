@@ -1,0 +1,76 @@
+# ==============================
+# 🌐 Project-Specific Ignores
+# ==============================
+# Docker
+*.pid
+*.log
+*.sock
+*.db
+
+# Docker Named Volumes
+icecast_logs/
+liquidsoap_logs/
+
+# Media Folders
+media/ads/*
+!media/ads/.gitignore
+
+media/buffers/*
+!media/buffers/.gitignore
+
+media/effects/*
+!media/effects/.gitignore
+!media/effects/start/
+!media/effects/end/
+media/effects/start/*
+!media/effects/start/.gitignore
+media/effects/end/*
+!media/effects/end/.gitignore
+
+media/ids/*
+!media/ids/.gitignore
+
+media/intros/*
+!media/intros/.gitignore
+
+media/music/*
+!media/music/.gitignore
+
+# Environment Variables
+.env
+.env.local
+.env.*
+!.env.example
+
+# Node Modules
+node_modules/
+
+# Backup & Temp Files
+*~
+*.swp
+*.bak
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ==============================
+# 🧠 Editor & IDEs
+# ==============================
+
+# VSCode
+.vscode/
+.history/
+.code-workspace
+
+# Editors
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.zed/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace

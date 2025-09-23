@@ -1,0 +1,42 @@
+services:
+  icecast:
+    image: libretime/icecast:2.4.4-alpine
+    user: "1000:1000"
+    ports:
+      - "127.0.0.1:${ICECAST_PORT}:8000"
+    environment:
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD}
+      ICECAST_RELAY_PASSWORD: ${ICECAST_RELAY_PASSWORD}
+      ICECAST_ADMIN_PASSWORD: ${ICECAST_ADMIN_PASSWORD}
+      ICECAST_PASSWORD: ${ICECAST_PASSWORD}
+    volumes:
+      - icecast_logs:/var/log/icecast
+    restart: unless-stopped
+
+  liquidsoap:
+    image: savonet/liquidsoap:v2.4.0-minimal
+    user: "1000:1000"
+    environment:
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD}
+    volumes:
+      - ./liquidsoap:/scripts:ro
+      - ./media:/media:ro
+    command: >
+      liquidsoap /scripts/script.liq
+    depends_on:
+      - icecast
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    user: "1000:1000"
+    ports:
+      - "127.0.0.1:${APP_PORT}:3000"
+    environment:
+      ICECAST_URL: http://icecast:8000
+    depends_on:
+      - icecast
+    restart: unless-stopped
+
+volumes:
+  icecast_logs:

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+        <link rel="manifest" href="/manifest.json">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+        <meta name="theme-color" content="#ffffff">
+        <title>Metro Fuzz Radio — Broadcasting the Omaha Underground</title>
+        <link rel="stylesheet" href="/style.css"/>
+    </head>
+    <body>
+        <header class="header">
+            <div class="logo-container">
+                <a href="/">
+                    <img src="/logo.png" alt="Metro Fuzz Logo" class="logo"/>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="#about">About</a>
+                <a href="#requests">Song Requests</a>
+                <a href="#submit">Submissions</a>
+                <a href="#shows">Shows</a>
+            </nav>
+        </header>
+
+        <div id="now-playing-banner" class="now-playing-banner">
+            <img src="/space-glow.gif" alt="Space Glow" class="space-glow">
+            <span>Now Playing: <span id="now-playing-title">Loading...</span></span>
+        </div>
+
+        <div class="audio-player">
+            <audio controls id="audio-player">
+                <source src="https://metrofuzz.live/stream.mp3" type="audio/mp3">
+                Your Browser Does Not Support The Audio Element.
+            </audio>
+        </div>
+
+        <main class="container">
+            <!-- About Section -->
+            <section class="section" id="about">
+                <h2 class="section-title">About Metro Fuzz Radio</h2>
+                <p>
+                    Metro Fuzz Radio is a non-commercial, non-profit, human-curated internet radio station
+                    by the Omaha Underground music community, for the Omaha Underground music community
+                    and its friends. We broadcast music, announcements, fake ads, and periodic call-in shows
+                    with Art Bell-esque late-night fever dream kinda flair.
+                </p>
+                <p>
+                    Everything played on the station is curated by a passionate, opinionated
+                    group of fellow musicians. We aim to champion weird, original, and varied music
+                    made by real humans. We are always open to submissions, new ideas, fake ads,
+                    show announcements, and anything you can think of. We are entirely non-commercial.
+                </p>
+            </section>
+
+            <!-- Requests Section -->
+            <section class="section" id="requests">
+                <h2 class="section-title">Submit a Song Request</h2>
+                <form id="request-form" class="request-form">
+                    <input type="text" name="name" placeholder="Your Name (Or Alias)" required/>
+                    <div class="suggestions">
+                        <input type="text" id="track-input" name="track" placeholder="Song Title or Artist" autocomplete="off" required/>
+                        <input type="hidden" id="track-id" name="trackId"/>
+                        <div id="suggestions" class="suggestions-list" style="display:none;"></div>
+                    </div>
+                    <button type="submit" class="button">Submit Request</button>
+                    <div class="help" id="request-response" role="status" aria-live="polite"></div>
+                </form>
+            </section>
+
+            <!-- Submissions Section -->
+            <section class="section" id="submit">
+                <h2 class="section-title">Submit to Metro Fuzz</h2>
+
+                <h3>Music Submission</h3>
+                <p>
+                    We only play music by independent, primarily Omaha-based artists who are
+                    DIY and unaffiliated with Performance Rights Organizational restrictions and the
+                    general formalized music industry.
+                </p>
+
+                <h3>Ad & Announcement Submission</h3>
+                <p>
+                    Got an ad for a fictitious brand of throat lozenges or an upcoming solo-cello
+                    performance in an abandoned bus stop? Get in touch.
+                </p>
+
+                <p>
+                    <a href="/submission-form.pdf" target="_blank" class="link">📄 Download the Audio Submission Form</a>
+                </p>
+                <p>
+                    <a href="mailto:band@billycheeseband.com?subject=Metro%20Fuzz%20Submission" class="link">📧 Email Your Submission(s)</a>
+                </p>
+            </section>
+
+            <!-- Shows Section -->
+            <section class="section" id="shows">
+                <h2 class="section-title">Shows</h2>
+
+                <!-- Bus Transmissions -->
+                <div class="show" id="bus-transmissions-show">
+                    <h3 class="show-title">Bus Transmissions</h3>
+                    <p>
+                        A late-night fever dream of a show. If you've ever seen a ghost,
+                        been visited by a black-eyed kid, or recently returned from an alien
+                        abduction, we want to hear from you. The show is sporadic,
+                        and we'll always announce shows at least a few hours ahead of time
+                    </p>
+                    <p>
+                        <a href="tel:+14022630431" class="link">☎️ Call Us</a>
+                    </p>
+                </div>
+            </section>
+        </main>
+        <footer class="footer">
+            <p>&copy; <span id="current-year"></span> Metro Fuzz Radio. All Rights Reserved.</p>
+        </footer>
+        <script src="/script.js"></script>
+    </body>
+</html>
