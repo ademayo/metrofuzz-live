@@ -105,7 +105,7 @@ request_queue = request.queue(id="rq", timeout=3600.)
 # Final Fallback Chain
 ##############################
 
-stream = fallback([request_queue.source(), events, buffers], track_sensitive=true)
+stream = fallback([request_queue.queue(), events, buffers], track_sensitive=true)
 
 ##############################
 # Icecast Output
