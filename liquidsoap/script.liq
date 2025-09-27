@@ -1,116 +1,125 @@
-set("log.stdout", true)
-set("harbor.bind_addr", "0.0.0.0")
+##############################
+# Helper Functions
+##############################
 
-# Loudness Normalization (LUFS Approx)
-normalize_audio(audio) = normalize(audio, gain_max=6.0)
-
-# Load Randomized Stingers
-start_stingers = list.hard("/media/effects/start")
-end_stingers = list.hard("/media/effects/end")
-
-def random_start_stinger() =
-  random(list.map(single, start_stingers))
-
-def random_end_stinger() =
-  random(list.map(single, end_stingers))
-
-# Station Identifiers (Hourly Breaks)
-station_ids = playlist(mode="randomize", reload_mode="rounds", "/media/ids")
-
-# Create Hourly Station Id Break With Stingers
-station_id_block = sequence([random_start_stinger(), station_ids, random_end_stinger()])
-
-# Schedule Station Id Break At The Top Of Every Hour
-def schedule_station_ids() =
-  add([blank(duration=delay_until_top_of_hour()), station_id_block])
+def normalize_audio(input_audio) =
+  normalize(input_audio, gain_max=6.0)
 end
 
-# Helper To Calculate Time Until Top Of Hour
 def delay_until_top_of_hour() =
   now = time()
-  next_hour = ceil(now /. 3600.0) *. 3600.0
-  next_hour -. now
+  next_hour = ((now / 3600.0) + 1.0) * 3600.0
+  next_hour - now
 end
 
-# Ad Breaks (Every 30 Minutes)
-ads = playlist(mode="rounds", reload_mode="rounds", "/media/ads")
-
-# Scheduled Ad Block With Fair Rotation
-def schedule_ads() =
-  add([blank(duration=delay_until_next_half_hour()), sequence([ads, ads])])
-end
-
-# Helper To Calculate Time Until Next Half-Hour
 def delay_until_next_half_hour() =
   now = time()
-  next_half = ceil(now /. 1800.0) *. 1800.0
-  next_half -. now
+  next_half = ((now / 1800.0) + 1.0) * 1800.0
+  next_half - now
 end
 
-# Intros With Stingers (Paired To Songs)
-def get_intros_for_song(basename) =
-  all_intros = list.hard("/media/intros")
-
-  intros_for_song = list.filter(
-    fun(f) -> string.ends_with(f, "_" ^ basename ^ ".mp3"),
-    all_intros
-  )
-
-  list.sort(intros_for_song)
+def get_basename(path_str) =
+  path.remove_extension(path.basename(path_str))
 end
 
-# Pair Multiple Intros With Each Song, Include Stingers
-def pair_multiple_intros_song(song_file) =
-  basename = string.strip(string.split(filename_to_string(song_file), ".")[0])
-  intros = get_intros_for_song(basename)
-  intros_sources = list.map(single, intros)
-  sequence([random_start_stinger()] @ intros_sources @ [random_end_stinger(), single(song_file)])
+##############################
+# Stingers (Preloaded Once)
+##############################
+
+start_stingers_paths = file.ls("/media/effects/start", pattern="*.mp3", absolute=true, sorted=true)
+start_stingers = list.map(single, start_stingers_paths)
+
+end_stingers_paths = file.ls("/media/effects/end", pattern="*.mp3", absolute=true, sorted=true)
+end_stingers = list.map(single, end_stingers_paths)
+
+# Reusable random start and end stinger sources (reused, not recreated)
+random_start_stinger = random(start_stingers)
+random_end_stinger = random(end_stingers)
+
+##############################
+# Station IDs (Hourly)
+##############################
+
+station_id_paths = file.ls("/media/ids", pattern="*.mp3", absolute=true, sorted=true)
+station_id_sources = list.map(single, station_id_paths)
+random_station_id = random(station_id_sources)
+
+station_id_block = sequence([random_start_stinger, random_station_id, random_end_stinger])
+
+def schedule_station_ids() =
+  sequence([
+    blank(duration=delay_until_top_of_hour()),
+    station_id_block
+  ])
 end
 
-# Load And Pair Music With Intros
-music_files = list.hard("/media/music")
-paired_sources = list.map(pair_multiple_intros_song, music_files)
+##############################
+# Ads (Every 30 Minutes)
+##############################
 
-# Create Fair Rotation Of Paired Tracks
-music_with_intros = rotate(weights=[], tracks=random(paired_sources))
+ads = playlist(mode="rounds", reload_mode="rounds", "/media/ads")
 
-# Buffers With Random Stingers
-def buffer_with_stingers(file) =
-  sequence([random_start_stinger(), single(file), random_end_stinger()])
+def schedule_ads() =
+  sequence([
+    blank(duration=delay_until_next_half_hour()),
+    ads,
+    ads
+  ])
 end
 
-buffer_files = list.hard("/media/buffers")
-buffer_sources = list.map(buffer_with_stingers, buffer_files)
-buffers = random(buffer_sources)
+##############################
+# Music (Plain, No Intros)
+##############################
 
+music_paths = file.ls("/media/music", pattern="*.mp3", absolute=true, sorted=true)
+music_sources = list.map(single, music_paths)
+random_music = random(music_sources)
+
+music_with_stingers = sequence([random_start_stinger, random_music, random_end_stinger])
+
+##############################
+# Buffers
+##############################
+
+buffer_paths = file.ls("/media/buffers", pattern="*.mp3", absolute=true, sorted=true)
+buffer_sources = list.map(single, buffer_paths)
+random_buffer = random(buffer_sources)
+
+buffers = sequence([random_start_stinger, random_buffer, random_end_stinger])
+
+##############################
 # Main Stream Logic
-# Normalize Music With Intros
-main_stream = normalize_audio(music_with_intros)
+##############################
 
-# Scheduled Events: Station Id + Ads + Main
-events = fallback.track_sensitive([
-  schedule_station_ids(),
-  schedule_ads(),
-  main_stream
-])
+main_stream = normalize_audio(music_with_stingers)
 
-# Request Queue (High Priority)
-# Node App Uses `request.push "<path>"` Over Telnet To Enqueue Here
-request_queue = request.queue(id="rq", timeout=3600., max=100)
+events = fallback([schedule_station_ids(), schedule_ads(), main_stream], track_sensitive=true)
 
-# Final Fallback Chain: Requests > Events > Buffers
-stream = fallback.track_sensitive([request_queue, events, buffers])
+##############################
+# Requests (High Priority)
+##############################
 
-# Icecast Output Configuration
+request_queue = request.queue(id="rq", timeout=3600.)
+
+##############################
+# Final Fallback Chain
+##############################
+
+stream = fallback([request_queue.source(), events, buffers], track_sensitive=true)
+
+##############################
+# Icecast Output
+##############################
+
 output.icecast(
   %mp3,
   host = "icecast",
   port = 8000,
-  password = getenv("ICECAST_SOURCE_PASSWORD", default="changeme"),
+  password = environment.get("ICECAST_SOURCE_PASSWORD"),
   mount = "stream.mp3",
   name = "Metro Fuzz Radio",
   description = "Serving The Omaha Underground Since 2025",
   genre = "Independent Music / Community Radio",
   url = "https://metrofuzz.live",
-  input = stream
+  stream
 )

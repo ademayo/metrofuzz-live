@@ -2,6 +2,7 @@
   "name": "metro-fuzz-web",
   "version": "1.0.0",
   "description": "Metro Fuzz Website & Icecast Radio Server",
+  "type": "module",
   "main": "index.js",
   "private": true,
   "scripts": {

@@ -30,9 +30,6 @@ media/effects/end/*
 media/ids/*
 !media/ids/.gitignore
 
-media/intros/*
-!media/intros/.gitignore
-
 media/music/*
 !media/music/.gitignore
 
