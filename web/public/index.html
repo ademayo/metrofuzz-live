@@ -21,22 +21,24 @@
         <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
         <meta name="theme-color" content="#ffffff">
         <title>Metro Fuzz Radio — Broadcasting the Omaha Underground</title>
+        <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="/style.css"/>
     </head>
     <body>
-        <header class="header">
-            <div class="logo-container">
-                <a href="/">
-                    <img src="/logo.png" alt="Metro Fuzz Logo" class="logo"/>
-                </a>
-            </div>
+        <div class="header">
+            <img src="logo.png" alt="Logo" class="logo">
+            <button class="menu-toggle" aria-label="Toggle menu">
+                ☰
+            </button>
+
             <nav class="nav">
+                <a href="#">Home</a>
                 <a href="#about">About</a>
-                <a href="#requests">Song Requests</a>
-                <a href="#submit">Submissions</a>
+                <a href="#requests">Requests</a>
+                <a href="#submit">Submit</a>
                 <a href="#shows">Shows</a>
             </nav>
-        </header>
+        </div>
 
         <div id="now-playing-banner" class="now-playing-banner">
             <img src="/space-glow.gif" alt="Space Glow" class="space-glow">
