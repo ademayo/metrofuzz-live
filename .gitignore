@@ -18,15 +18,6 @@ media/ads/*
 media/buffers/*
 !media/buffers/.gitignore
 
-media/effects/*
-!media/effects/.gitignore
-!media/effects/start/
-!media/effects/end/
-media/effects/start/*
-!media/effects/start/.gitignore
-media/effects/end/*
-!media/effects/end/.gitignore
-
 media/ids/*
 !media/ids/.gitignore
 
