@@ -6,7 +6,7 @@ end
 # DEFINE Playlists For Station Elements
 ids = playlist("/media/ids", mode="random", reload_mode="lazy")
 ads = playlist("/media/ads/*.mp3", mode="normal", reload_mode="lazy")
-music = playlist("/media/music", mode="random", reload_mode="lazy")
+music = playlist("/media/daily.m3u", mode="normal", reload_mode="watch")
 
 # CREATE Main Stream With Rotation Between IDs And Music
 main_stream = fallback(track_sensitive=false, [
