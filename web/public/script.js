@@ -1,102 +1,95 @@
+/* ───────────────────────── NAV TOGGLE ───────────────────────── */
 const menuToggle = document.querySelector('.menu-toggle');
-const nav = document.querySelector('.nav');
+const nav  = document.querySelector('.nav');
 
 if (menuToggle && nav) {
-    menuToggle.addEventListener('click', () => {
-        nav.classList.toggle('active');
-    });
+    menuToggle.addEventListener('click', () => nav.classList.toggle('active'));
 }
 
+/* ───────────────────────── AUTOCOMPLETE ─────────────────────── */
 const trackInput = document.getElementById('track-input');
 const trackIdInput = document.getElementById('track-id');
 const suggestionsBox = document.getElementById('suggestions');
 const nowPlayingElement = document.getElementById('now-playing-title');
 
-let debounceTimer = null;
-let activeIndex = -1;
-let currentSuggestions = [];
+let debounceTimer  = null;
+let activeIndex    = -1;
+let currentResults = [];
 
 const hideSuggestions = () => {
     suggestionsBox.style.display = 'none';
     suggestionsBox.innerHTML = '';
-    currentSuggestions = [];
+    currentResults = [];
     activeIndex = -1;
 };
 
-const escapeHtml = unsafe =>
-    unsafe.replace(/[&<>"']/g, char => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    }[char]));
+const escapeHtml = str =>
+    str.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[ch]));
 
 const selectSuggestion = item => {
-    trackInput.value = item.title;
+    trackInput.value  = item.title;
     trackIdInput.value = item.id;
     hideSuggestions();
 };
 
-const renderSuggestions = items => {
-    if (!items.length) return hideSuggestions();
+const renderSuggestions = list => {
+    if (!list.length) return hideSuggestions();
 
-    suggestionsBox.innerHTML = items
-        .map((item, index) => {
-            const activeClass = index === activeIndex ? 'suggestion-item active' : 'suggestion-item';
-            return `<div class="${activeClass}" data-id="${item.id}" data-title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>`;
-        })
-        .join('');
+    suggestionsBox.innerHTML = list.map((item, i) => {
+        const cls = i === activeIndex ? 'suggestion-item active' : 'suggestion-item';
+        return `<div class="${cls}" data-id="${item.id}" data-title="${escapeHtml(item.title)}">
+                  ${escapeHtml(item.title)}
+                </div>`;
+    }).join('');
 
     suggestionsBox.style.display = 'block';
 
     Array.from(suggestionsBox.children).forEach(el =>
-        el.addEventListener('click', () => selectSuggestion({
-            id: parseInt(el.getAttribute('data-id'), 10),
-            title: el.getAttribute('data-title')
-        }))
+        el.addEventListener('click', () =>
+            selectSuggestion({ id: +el.dataset.id, title: el.dataset.title })
+        )
     );
 };
 
-const fetchSuggestions = async query => {
+const fetchSuggestions = async q => {
     try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const list = await response.json();
-        currentSuggestions = Array.isArray(list) ? list : [];
-        activeIndex = -1;
-        renderSuggestions(currentSuggestions);
-    } catch {
-        hideSuggestions();
-    }
+        const r   = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const arr = await r.json();
+        currentResults = Array.isArray(arr) ? arr : [];
+        activeIndex    = -1;
+        renderSuggestions(currentResults);
+    } catch { hideSuggestions(); }
 };
 
 trackInput.addEventListener('input', () => {
     trackIdInput.value = '';
-    const query = trackInput.value.trim();
-    if (!query) return hideSuggestions();
+    const q = trackInput.value.trim();
+    if (!q) return hideSuggestions();
 
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => fetchSuggestions(query), 180);
+    debounceTimer = setTimeout(() => fetchSuggestions(q), 180);
 });
 
-trackInput.addEventListener('keydown', event => {
-    if (!currentSuggestions.length || suggestionsBox.style.display === 'none') return;
+trackInput.addEventListener('keydown', e => {
+    if (!currentResults.length || suggestionsBox.style.display === 'none') return;
 
-    switch (event.key) {
+    switch (e.key) {
         case 'ArrowDown':
-            event.preventDefault();
-            activeIndex = (activeIndex + 1) % currentSuggestions.length;
-            renderSuggestions(currentSuggestions);
+            e.preventDefault();
+            activeIndex = (activeIndex + 1) % currentResults.length;
+            renderSuggestions(currentResults);
             break;
         case 'ArrowUp':
-            event.preventDefault();
-            activeIndex = (activeIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
-            renderSuggestions(currentSuggestions);
+            e.preventDefault();
+            activeIndex = (activeIndex - 1 + currentResults.length) % currentResults.length;
+            renderSuggestions(currentResults);
             break;
         case 'Enter':
             if (activeIndex >= 0) {
-                event.preventDefault();
-                selectSuggestion(currentSuggestions[activeIndex]);
+                e.preventDefault();
+                selectSuggestion(currentResults[activeIndex]);
             }
             break;
         case 'Escape':
@@ -105,27 +98,61 @@ trackInput.addEventListener('keydown', event => {
     }
 });
 
+/* ───────────────────────── NOW-PLAYING BANNER ───────────────── */
 const fetchNowPlaying = async () => {
     try {
-        const response = await fetch('/api/now-playing');
-        const data = await response.json();
-        nowPlayingElement.textContent = data.title || 'No Track Playing';
+        const r   = await fetch('/api/now-playing');
+        const j   = await r.json();
+        nowPlayingElement.textContent = j.title || 'No Track Playing';
     } catch {
         nowPlayingElement.textContent = 'Error Fetching Track';
     }
 };
 
-fetchNowPlaying().then(r => {});
-setInterval(fetchNowPlaying, 10000);
+fetchNowPlaying().then(response => {});
+setInterval(fetchNowPlaying, 10_000);
 
+/* ───────────────────────── FOOTER YEAR ──────────────────────── */
 const updateFooterYear = () => {
-    const yearSpan = document.getElementById('current-year');
-
-    if (yearSpan) {
-        yearSpan.textContent = new Date().getFullYear();
-    }
+    const span = document.getElementById('current-year');
+    if (span) span.textContent = new Date().getFullYear();
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateFooterYear();
-});
+document.addEventListener('DOMContentLoaded', updateFooterYear);
+
+/* ───────────────────────── REQUEST FORM ─────────────────────── */
+const requestForm     = document.getElementById('request-form');
+const requestResponse = document.getElementById('request-response');
+
+if (requestForm) {
+    requestForm.addEventListener('submit', async ev => {
+        ev.preventDefault();
+
+        const name    = requestForm.elements.name.value.trim();
+        const trackId = parseInt(trackIdInput.value, 10);
+
+        if (!name || isNaN(trackId)) {
+            requestResponse.textContent = '⚠️ Please pick a song from the suggestions.';
+            return;
+        }
+
+        requestResponse.textContent = 'Submitting…';
+
+        try {
+            const res  = await fetch('/api/request', {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body   : JSON.stringify({ name, trackId })
+            });
+            const data = await res.json();
+            requestResponse.textContent = data.message || 'Unknown response';
+
+            if (res.ok) {
+                requestForm.reset();
+                hideSuggestions();
+            }
+        } catch {
+            requestResponse.textContent = 'Server error, please try later.';
+        }
+    });
+}
