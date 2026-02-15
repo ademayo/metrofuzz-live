@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   liquidsoap:
-    image: savonet/liquidsoap:v2.4.0
+    image: savonet/liquidsoap:v2.4.2
     user: "1000:1000"
     environment:
       ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD}
@@ -28,6 +28,15 @@ services:
       liquidsoap /scripts/script.liq
     depends_on:
       - icecast
+    restart: unless-stopped
+
+  playlist-worker:
+    build: ./playlist-worker
+    user: "1000:1000"
+    volumes:
+      - ./media:/media:rw
+    environment:
+      PLAYLIST_PATH: /media/music_playlist.m3u
     restart: unless-stopped
 
   web:
