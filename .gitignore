@@ -12,6 +12,7 @@ icecast_logs/
 liquidsoap_logs/
 
 # Media Folders
+media/music_playlist.m3u
 media/ads/*
 !media/ads/.gitignore
 
