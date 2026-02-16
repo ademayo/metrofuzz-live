@@ -1,11 +1,9 @@
 import os, random, math, time
-from collections import deque
 
 MUSIC_DIR = "/media/music"
 IDS_DIR = "/media/ids"
 ADS_DIR = "/media/ads"
 PLAYLIST_PATH = os.environ.get("PLAYLIST_PATH", "/media/music_playlist.m3u")
-RECENT_ADS = 5
 
 def build_playlist():
     bands = [d for d in os.listdir(MUSIC_DIR) if os.path.isdir(os.path.join(MUSIC_DIR,d))]
@@ -43,48 +41,26 @@ def build_playlist():
         weighted_music.extend([path]*w_int)
 
     random.shuffle(weighted_music)
-    music_deque = deque(weighted_music)
 
     # Load IDs & Ads
     ids = [os.path.join(IDS_DIR,f) for f in os.listdir(IDS_DIR) if f.lower().endswith(".mp3")]
     ads = [os.path.join(ADS_DIR,f) for f in os.listdir(ADS_DIR) if f.lower().endswith(".mp3")]
+
+    # Build Final Playlist
     final_playlist = []
-    last_id = None
-    recent_ads = deque(maxlen=RECENT_ADS)
+    i = 0
 
-    while music_deque:
+    while i < len(weighted_music):
         # 3 Music Tracks
-        for _ in range(3):
-            if not music_deque:
-                break
-
-            track = music_deque.popleft()
-            final_playlist.append(track)
-            music_deque.append(track)
+        final_playlist.extend(weighted_music[i:i+3])
+        i += 3
 
         # 1 Random ID
         if ids:
-            available_ids = [i for i in ids if i != last_id]
+            final_playlist.append(random.choice(ids))
 
-            if not available_ids:
-                available_ids = ids
-
-            chosen_id = random.choice(available_ids)
-            final_playlist.append(chosen_id)
-            last_id = chosen_id
-
-        # Ad Block: 1-3 Ads
-        if ads:
-            num_ads = random.randint(1,3)
-            available_ads = [a for a in ads if a not in recent_ads]
-
-            if len(available_ads) < num_ads:
-                available_ads = ads
-                recent_ads.clear()
-
-            ad_block = random.sample(available_ads, min(num_ads, len(available_ads)))
-            final_playlist.extend(ad_block)
-            recent_ads.extend(ad_block)
+        if ads and random.random() < 0.35:
+            final_playlist.append(random.choice(ads))
 
     # Write Playlist
     with open(PLAYLIST_PATH, "w") as f:
@@ -96,4 +72,4 @@ def build_playlist():
 # Run Twice A Day (~12 Hours)
 while True:
     build_playlist()
-    time.sleep(12*60*60)
+    time.sleep(12 * 60 * 60)
