@@ -1,99 +1,126 @@
-import os, random, math, time
-from collections import deque, defaultdict
+import os
+import random
+import math
+import time
+from collections import defaultdict
 
 MUSIC_DIR = "/media/music"
 IDS_DIR = "/media/ids"
 ADS_DIR = "/media/ads"
-PLAYLIST_PATH = os.environ.get("PLAYLIST_PATH", "/media/music_playlist.m3u")
+PLAYLIST_PATH = "music_playlist.m3u"
 AVG_TRACK_LENGTH = 210
 
 def get_next_ad_interval():
-    return random.randint(18*60, 25*60)
+    return random.randint(18 * 60, 25 * 60)
 
 def build_playlist():
-    bands = [d for d in os.listdir(MUSIC_DIR)
-             if os.path.isdir(os.path.join(MUSIC_DIR, d))]
+    print("Scanning Music Library...")
 
-    band_tracks = {}
+    # ---- Scan All Tracks ----
+    band_tracks = defaultdict(list)
 
-    # Scan Bands
-    for band in bands:
+    for band in os.listdir(MUSIC_DIR):
         band_path = os.path.join(MUSIC_DIR, band)
-        tracks = []
+
+        if not os.path.isdir(band_path):
+            continue
 
         for root, _, files in os.walk(band_path):
             for f in files:
                 if f.lower().endswith(".mp3"):
-                    tracks.append(os.path.join(root, f))
+                    full_path = os.path.join(root, f)
+                    band_tracks[band].append(full_path)
 
-        if tracks:
-            random.shuffle(tracks)
-            band_tracks[band] = deque(tracks)
+    # Remove Empty Bands
+    band_tracks = {
+        band: tracks
+        for band, tracks in band_tracks.items()
+        if tracks
+    }
 
     if not band_tracks:
         print("No Music Tracks Found!")
         return
 
-    # Fair Weighting: Square Root Bias But Not Extreme
+    # ---- Fair Weighting (Square Root Bias) ----
     band_weights = {
         band: math.sqrt(len(tracks))
         for band, tracks in band_tracks.items()
     }
 
-    # Normalize Weights
     max_weight = max(band_weights.values())
+
     band_weights = {
-        band: int(100 * w / max_weight)
+        band: max(1, int(100 * w / max_weight))
         for band, w in band_weights.items()
     }
 
-    # Expand Band Rotation Pool
-    rotation_pool = []
-    for band, weight in band_weights.items():
-        rotation_pool.extend([band] * max(1, weight))
+    # ---- Build Weighted Track Pool ----
+    weighted_tracks = []
 
-    random.shuffle(rotation_pool)
+    for band, tracks in band_tracks.items():
+        weight = band_weights[band]
 
-    # Load IDs & Ads
-    ids = [os.path.join(IDS_DIR, f)
-           for f in os.listdir(IDS_DIR)
-           if f.lower().endswith(".mp3")]
+        for track in tracks:
+            weighted_tracks.extend([track] * weight)
 
-    ads = [os.path.join(ADS_DIR, f)
-           for f in os.listdir(ADS_DIR)
-           if f.lower().endswith(".mp3")]
+    random.shuffle(weighted_tracks)
+
+    # ---- Load IDs And Ads ----
+    ids = []
+
+    if os.path.isdir(IDS_DIR):
+        ids = [
+            os.path.join(IDS_DIR, f)
+            for f in os.listdir(IDS_DIR)
+            if f.lower().endswith(".mp3")
+        ]
+    ads = []
+
+    if os.path.isdir(ADS_DIR):
+        ads = [
+            os.path.join(ADS_DIR, f)
+            for f in os.listdir(ADS_DIR)
+            if f.lower().endswith(".mp3")
+        ]
 
     final_playlist = []
     last_band = None
     last_id = None
-    last_ads_played = set()
+    last_ads = set()
     seconds_since_ad = 0
     next_ad_time = get_next_ad_interval()
-
-    # Build Playlist Length Target (About 12 Hours)
     target_tracks = 12 * 60 * 60 // AVG_TRACK_LENGTH
-    music_count = 0
+    music_played = 0
+    track_index = 0
 
-    while music_count < target_tracks:
-        # --- MUSIC BLOCK (3 songs) ---
+    # ---- Build Playlist ----
+    while music_played < target_tracks and track_index < len(weighted_tracks):
+        # --- Music Block (3 Songs) ---
         block_count = 0
 
-        while block_count < 3 and music_count < target_tracks:
-            random.shuffle(rotation_pool)
+        while block_count < 3 and music_played < target_tracks and track_index < len(weighted_tracks):
+            track = weighted_tracks[track_index]
+            track_index += 1
+            band = os.path.basename(os.path.dirname(track))
 
-            for band in rotation_pool:
-                if band != last_band and band_tracks[band]:
-                    track = band_tracks[band].popleft()
-                    final_playlist.append(track)
-                    last_band = band
-                    block_count += 1
-                    music_count += 1
-                    seconds_since_ad += AVG_TRACK_LENGTH
-                    break
+            # Prevent Immediate Same-Band Repeat
+            if band == last_band:
+                continue
 
-        # --- ID After Music Block ---
+            final_playlist.append(track)
+            last_band = band
+            block_count += 1
+            music_played += 1
+            seconds_since_ad += AVG_TRACK_LENGTH
+
+        if block_count == 0:
+            break  # No More Playable Tracks
+
+        # --- Station ID After Music Block ---
         if ids:
             available_ids = [i for i in ids if i != last_id]
+
             if not available_ids:
                 available_ids = ids
 
@@ -101,35 +128,45 @@ def build_playlist():
             final_playlist.append(chosen_id)
             last_id = chosen_id
 
-        # --- AD BREAK ---
+        # --- Ad Break Based On Time ---
         if ads and seconds_since_ad >= next_ad_time:
             num_ads = random.randint(1, 3)
-            available_ads = [a for a in ads if a not in last_ads_played]
+            available_ads = [a for a in ads if a not in last_ads]
 
             if len(available_ads) < num_ads:
                 available_ads = ads
-                last_ads_played.clear()
+                last_ads.clear()
 
-            ad_block = random.sample(available_ads,
-                                     min(num_ads, len(available_ads)))
+            ad_block = random.sample(
+                available_ads,
+                min(num_ads, len(available_ads))
+            )
 
             for ad in ad_block:
                 final_playlist.append(ad)
 
-            last_ads_played.update(ad_block)
-
+            last_ads.update(ad_block)
             seconds_since_ad = 0
             next_ad_time = get_next_ad_interval()
 
-    # Write Playlist
+    # ---- Write Playlist File ----
+    print("Writing Playlist:", PLAYLIST_PATH)
+    print("Total Items:", len(final_playlist))
+
     with open(PLAYLIST_PATH, "w") as f:
-        for track in final_playlist:
-            f.write(track + "\n")
+        for item in final_playlist:
+            f.write(item + "\n")
 
-    print(f"Playlist Generated With {len(final_playlist)} Items.")
+    print("Playlist Generated Successfully.")
 
-
-# Run Twice A Day (~12 Hours)
+# ---- Loop Forever With 12-Hour Sleep ----
 while True:
-    build_playlist()
-    time.sleep(12 * 60 * 60)
+    try:
+        print("\n--- Building New Playlist ---")
+        # build_playlist()
+        print("Sleeping 12 Hours...\n")
+        time.sleep(12 * 60 * 60)
+    except Exception as exception:
+        print("Error Occurred:", exception)
+        print("Retrying In 60 Seconds...")
+        time.sleep(60)
