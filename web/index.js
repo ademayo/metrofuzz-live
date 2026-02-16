@@ -1,11 +1,20 @@
 import express from 'express';
 import axios from 'axios';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 const port = 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ICECAST_STATUS_URL = `${process.env.ICECAST_URL || 'http://icecast:8000'}/status-json.xsl`;
 
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (request, response) => {
+    response.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.get('/api/now-playing', async (request, response) => {
     try {
